@@ -1,37 +1,70 @@
-const users = [];
+require("../db/mongoose");
+const User = require("../../models/user");
 
-const addUser = (id, username, channel) => {
-  if (!username || !id || !channel) {
-    return {
-      error: "username and channel can't be blank",
-    };
+
+
+const addUser =  (username, channel,id) => {
+
+  if (!username || !channel || !id) {
+    //console.log('username , channel cant be blank.');
+    throw new Error("USERNAME OR CHANNEL CAN'T BE BLANK!!!");
   }
-  //username kontrolü
-  const existingUser = users.find(
-    (user) => user.channel === channel && user.username === username
-  );
-
-  if (existingUser) return { error: "That Username exist" };
-
-  const user = { id, username, channel };
-  users.push(user);
-  return {user};
-};
-
-const getUser = (id) => {
-  return users.find((user) => user.id === id);
-};
-
-const removeUser = (id) => {
-  const userIndex = users.findIndex((user) => user.id === id);
-
-  return userIndex !== -1 ? users.splice(userIndex, 1)[0] : -1;
   
+  User.findOne({username:username,channel:channel},(err,existingUser) => {  
+    //console.log(existingUser);  
+      if (existingUser || err) {
+        return err;
+      }else{
+        const user = new User({username:username, channel:channel, id:id})
+          user.save();
+      }
+  });
 };
 
-const getUserListInChannel = (channel) => {
-  return users.filter((user) => user.channel === channel);
+//addUser('habilasd','asd','12')
+
+const getUser = (id,callback) => {
+ User.findOne({id:id},(err,user)=>{
+  if(user)  return callback(null,user);
+  else if (err) return callback(err); 
+  else return callback();
+ });
 };
+
+ const removeUser = (id,callback) => {
+    User.findOneAndDelete({id:id},(err,user)=>{
+      if(user)  return callback(null,user);
+      else if (err) return callback(err); 
+      else return callback();
+    })
+
+};
+
+
+
+const getUserListInChannel = (channel,callback) => {
+  User.find({channel:channel},(err,users)=>{
+    if(users) return callback(null,users);
+    else if (err) return callback(err);
+    else return callback();
+  });
+};
+
+
+
+/*
+addUser('habil6','abc','6');
+addUser('habil7','abc','7');
+addUser('habil8','abc','8');
+*/
+
+/*
+getUserListInChannel('game', (err,users)=>{
+  return users;
+});
+*/
+
+
 
 module.exports = {
   addUser,
