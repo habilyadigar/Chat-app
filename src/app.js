@@ -20,24 +20,29 @@ const publicPathDirectory = path.join(__dirname, "../public");
 app.use(express.static(publicPathDirectory));
 
 io.on("connection", (socket) => {
-
   socket.on("join", ({ username, channel }, callback) => {
-    const { user, error } = setTimeout(addUser, 1000,username, channel, socket.id );
+    const { user, error } = setTimeout(
+      addUser,
+      1000,
+      username,
+      channel,
+      socket.id
+    );
     //const { user, error } = addUser(username, channel, socket.id);
     if (error) {
       return callback(error);
     }
-    setTimeout(()=>{
-      getUserListInChannel(channel,(err,users)=>{
+    setTimeout(() => {
+      getUserListInChannel(channel, (err, users) => {
         socket.join(channel);
         io.to(channel).emit("sidebarInfo", {
           channel,
-          users: users
+          users: users,
         });
       });
-    },2000);
+    }, 2000);
 
-    socket.emit("recievedMessage", getMessage("SYSTEM:", "WELCOME"));
+    socket.emit("recievedMessage", getMessage("SYSTEM:", `WELCOME ${username}`));
     socket.broadcast
       .to(channel)
       .emit(
@@ -47,15 +52,18 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sendMessage", (text, callback) => {
-    getUser(socket.id,(err,user)=>{
+    getUser(socket.id, (err, user) => {
       if (text === "HELLO") return callback(false);
-      io.to(user.channel).emit("recievedMessage", getMessage(user.username, text));
+      io.to(user.channel).emit(
+        "recievedMessage",
+        getMessage(user.username, text)
+      );
       callback(true);
     });
   });
 
   socket.on("sendLocation", ({ latitude, longitude }) => {
-    getUser(socket.id,(err,user) => {
+    getUser(socket.id, (err, user) => {
       const { username, channel } = user;
       const url = `http://maps.google.com?q=${latitude},${longitude}`;
       io.to(channel).emit(
@@ -66,23 +74,21 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("disconnected");
-    
+    //console.log("disconnected");
     removeUser(socket.id, (error, user) => {
-      console.log(user);
+      //console.log(user);
       if (user) {
         const { username, channel } = user;
 
-        getUserListInChannel(channel,(err,users)=>{
+        getUserListInChannel(channel, (err, users) => {
           io.to(channel).emit("sidebarInfo", {
             channel,
-            users: users
+            users: users,
           });
         }),
-        io.to(channel).emit(
-          "recievedMessage",
-          getMessage("SYSTEM:", `${username} LEFT`)
-        );
+          io
+            .to(channel)
+            .emit("recievedMessage", getMessage("SYSTEM:", `${username} LEFT`));
       }
     });
   });
